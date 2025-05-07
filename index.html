@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <title>IP Verification</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <style>
     body {
       margin: 0;
@@ -79,7 +80,7 @@
     <h2>Device Verification</h2>
     <p id="status">Please wait...</p>
     <div class="userid" id="userid" style="display: none;">User ID: 5911741768</div>
-    <button class="btn" onclick="window.location.reload()">Return to Bot</button>
+    <button class="btn" onclick="closeWindow()">Return to Bot</button>
   </div>
 
   <script>
@@ -105,12 +106,20 @@
 
         document.getElementById("status").innerText = `Already Verified`;
         document.getElementById("userid").style.display = 'inline-block';
-        document.getElementById("icon").textContent = "×"; // Show cross
-        document.getElementById("icon").style.color = "#f87171";
-      } catch (e) {
-        document.getElementById("status").innerText = "Verification failed.";
         document.getElementById("icon").textContent = "✓";
         document.getElementById("icon").style.color = "#22c55e";
+      } catch (e) {
+        document.getElementById("status").innerText = "Verification failed.";
+        document.getElementById("icon").textContent = "×";
+        document.getElementById("icon").style.color = "#f87171";
+      }
+    }
+
+    function closeWindow() {
+      if (window.Telegram && Telegram.WebApp) {
+        Telegram.WebApp.close();
+      } else {
+        window.location.href = "https://t.me/Instant_Cop_Bot";
       }
     }
 
