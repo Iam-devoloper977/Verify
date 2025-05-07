@@ -3,42 +3,87 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <link rel="stylesheet" href="style.css" />
-  <title>Secure Verification</title>
-</head>
-<body>
-  <div class="usercard" id="usercard"></div>
-  <div class="box">
-    <div class="button">
-      <div class="verification-container">
-        <div class="verification-circle">
-          <div class="verification-checkmark"></div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <script src="https://telegram.org/js/telegram-web-app.js"></script>
-  <script>
-    const tg = window.Telegram.WebApp;
-    const user_id = new URLSearchParams(window.location.search).get("user_id");
-
-    let device_token = localStorage.getItem("secure_device_token");
-    if (!device_token) {
-      device_token = crypto.randomUUID(); // generate secure UUID
-      localStorage.setItem("secure_device_token", device_token);
+  <title>Device Verification</title>
+  <style>
+    body {
+      background-color: #0d1117;
+      color: white;
+      font-family: Arial, sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
     }
 
-    fetch("https://your_webhook_url_here", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        device_token,
-        user_id
-      })
-    }).then(() => {
-      document.querySelector('.verification-checkmark').style.opacity = 1;
-    });
+    .card {
+      background-color: #1c1f26;
+      border-radius: 15px;
+      padding: 30px;
+      text-align: center;
+      box-shadow: 0 0 20px rgba(0,0,0,0.5);
+      width: 320px;
+    }
+
+    .circle {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border: 4px dotted #4b5563;
+      border-radius: 50%;
+      width: 70px;
+      height: 70px;
+      margin: 0 auto 20px;
+      font-size: 30px;
+    }
+
+    .verified-circle {
+      border-color: #22c55e;
+      color: #22c55e;
+    }
+
+    .not-verified-circle {
+      border-color: #ef4444;
+      color: #ef4444;
+    }
+
+    .button {
+      margin-top: 20px;
+      background-color: #2563eb;
+      color: white;
+      padding: 10px 20px;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div id="circle" class="circle not-verified-circle">✖</div>
+    <h2>Device Verification</h2>
+    <p id="status" style="color: #ef4444;">Already Verified</p>
+    <p>User ID: 5911741768</p>
+    <button class="button" onclick="returnToBot()">Return to Bot</button>
+  </div>
+
+  <script>
+    const isVerified = true; // Change this to false to simulate not verified
+
+    if (isVerified) {
+      const circle = document.getElementById("circle");
+      circle.textContent = "✔";
+      circle.classList.remove("not-verified-circle");
+      circle.classList.add("verified-circle");
+
+      const status = document.getElementById("status");
+      status.textContent = "Verified";
+      status.style.color = "#22c55e";
+    }
+
+    function returnToBot() {
+      alert("Returning to bot...");
+    }
   </script>
 </body>
 </html>
