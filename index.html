@@ -1,19 +1,18 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta charset="UTF-8">
   <title>Device Verification</title>
   <style>
     body {
       background-color: #0d1117;
       color: white;
       font-family: Arial, sans-serif;
+      height: 100vh;
+      margin: 0;
       display: flex;
       justify-content: center;
       align-items: center;
-      height: 100vh;
-      margin: 0;
     }
 
     .card {
@@ -21,30 +20,52 @@
       border-radius: 15px;
       padding: 30px;
       text-align: center;
-      box-shadow: 0 0 20px rgba(0,0,0,0.5);
+      box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
       width: 320px;
     }
 
     .circle {
-      display: inline-flex;
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      margin: 0 auto 20px;
+      display: flex;
       align-items: center;
       justify-content: center;
-      border: 4px dotted #4b5563;
+      font-size: 32px;
+      position: relative;
+    }
+
+    .rotating-ring {
+      position: absolute;
+      width: 100%;
+      height: 100%;
       border-radius: 50%;
-      width: 70px;
-      height: 70px;
-      margin: 0 auto 20px;
-      font-size: 30px;
+      border: 4px dashed #4b5563;
+      animation: spin 2s linear infinite, fadeSolid 3s forwards;
     }
 
-    .verified-circle {
-      border-color: #22c55e;
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    @keyframes fadeSolid {
+      0% {
+        border-style: dashed;
+        border-width: 4px;
+        border-color: #4b5563;
+      }
+      100% {
+        border-style: solid;
+        border-width: 4px;
+        border-color: #22c55e;
+      }
+    }
+
+    .check {
       color: #22c55e;
-    }
-
-    .not-verified-circle {
-      border-color: #ef4444;
-      color: #ef4444;
+      z-index: 1;
     }
 
     .button {
@@ -60,27 +81,17 @@
 </head>
 <body>
   <div class="card">
-    <div id="circle" class="circle not-verified-circle">✖</div>
+    <div class="circle">
+      <div class="rotating-ring"></div>
+      <div class="check">✔</div>
+    </div>
     <h2>Device Verification</h2>
-    <p id="status" style="color: #ef4444;">Already Verified</p>
+    <p id="status" style="color: #22c55e;">Verified</p>
     <p>User ID: 5911741768</p>
     <button class="button" onclick="returnToBot()">Return to Bot</button>
   </div>
 
   <script>
-    const isVerified = true; // Change this to false to simulate not verified
-
-    if (isVerified) {
-      const circle = document.getElementById("circle");
-      circle.textContent = "✔";
-      circle.classList.remove("not-verified-circle");
-      circle.classList.add("verified-circle");
-
-      const status = document.getElementById("status");
-      status.textContent = "Verified";
-      status.style.color = "#22c55e";
-    }
-
     function returnToBot() {
       alert("Returning to bot...");
     }
