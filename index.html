@@ -4,12 +4,83 @@
   <meta charset="UTF-8">
   <title>IP Verification</title>
   <style>
-    body { font-family: Arial, sans-serif; text-align: center; margin-top: 50px; }
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: #0f172a;
+      color: white;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+    }
+
+    .container {
+      background-color: #1e293b;
+      border-radius: 20px;
+      padding: 40px;
+      width: 90%;
+      max-width: 350px;
+      text-align: center;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+    }
+
+    .icon-circle {
+      width: 60px;
+      height: 60px;
+      margin: 0 auto 20px auto;
+      border-radius: 50%;
+      border: 4px dotted #3b82f6;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #f87171;
+      font-size: 28px;
+    }
+
+    h2 {
+      color: #3b82f6;
+      margin-bottom: 10px;
+    }
+
+    #status {
+      color: #f87171;
+      margin-bottom: 20px;
+    }
+
+    .userid {
+      background-color: #334155;
+      padding: 8px 16px;
+      border-radius: 20px;
+      font-size: 14px;
+      margin-bottom: 30px;
+      display: inline-block;
+    }
+
+    .btn {
+      background-color: #2563eb;
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 12px;
+      font-size: 16px;
+      cursor: pointer;
+    }
+
+    .btn:hover {
+      background-color: #1d4ed8;
+    }
   </style>
 </head>
 <body>
-  <h2>Verifying your IP address...</h2>
-  <p id="status">Please wait...</p>
+  <div class="container">
+    <div class="icon-circle" id="icon">×</div>
+    <h2>Device Verification</h2>
+    <p id="status">Please wait...</p>
+    <div class="userid" id="userid" style="display: none;">User ID: 5911741768</div>
+    <button class="btn" onclick="window.location.reload()">Return to Bot</button>
+  </div>
 
   <script>
     async function verifyIP() {
@@ -32,9 +103,14 @@
           body: JSON.stringify({ ip: ip })
         });
 
-        document.getElementById("status").innerText = `Your IP (${ip}) has been verified!`;
+        document.getElementById("status").innerText = `Already Verified`;
+        document.getElementById("userid").style.display = 'inline-block';
+        document.getElementById("icon").textContent = "×"; // Show cross
+        document.getElementById("icon").style.color = "#f87171";
       } catch (e) {
         document.getElementById("status").innerText = "Verification failed.";
+        document.getElementById("icon").textContent = "✓";
+        document.getElementById("icon").style.color = "#22c55e";
       }
     }
 
