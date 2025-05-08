@@ -1,177 +1,118 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>IP Verification</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Device Verification</title>
   <style>
     body {
-      margin: 0;
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      background-color: #0f172a;
+      background: #0d1117;
       color: white;
+      font-family: Arial, sans-serif;
       display: flex;
-      flex-direction: column;
       align-items: center;
       justify-content: center;
       height: 100vh;
+      margin: 0;
       overflow: hidden;
     }
-
     .container {
-      background-color: #1e293b;
-      border-radius: 20px;
-      padding: 40px;
-      width: 90%;
-      max-width: 350px;
       text-align: center;
-      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
     }
-
-    .icon-wrapper {
-      position: relative;
-      width: 80px;
-      height: 80px;
-      margin: 0 auto 20px auto;
-    }
-
-    .spinning-circle {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 80px;
-      height: 80px;
-      border-radius: 50%;
+    .box {
+      width: 220px;
+      height: 220px;
+      margin: auto;
       border: 4px solid #3b82f6;
-      border-top: 4px solid transparent;
-      animation: spinExpand 2s ease-in-out forwards;
-    }
-
-    .icon-circle {
-      width: 80px;
-      height: 80px;
       border-radius: 50%;
-      background-color: transparent;
+      animation: spin 2s linear infinite;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 32px;
-      z-index: 2;
-      position: relative;
+      transition: all 0.5s ease;
     }
-
-    h2 {
-      color: #3b82f6;
-      margin-bottom: 10px;
-    }
-
-    #status {
-      color: #f87171;
-      margin-bottom: 20px;
-    }
-
-    .userid {
-      background-color: #334155;
-      padding: 8px 16px;
+    .box.verified {
+      animation: none;
       border-radius: 20px;
-      font-size: 14px;
-      margin-bottom: 30px;
-      display: inline-block;
     }
-
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    .message {
+      margin-top: 20px;
+      font-size: 18px;
+    }
     .btn {
-      background-color: #2563eb;
-      color: white;
+      margin-top: 20px;
+      background: #3b82f6;
       border: none;
-      padding: 12px 24px;
-      border-radius: 12px;
+      padding: 10px 20px;
+      color: white;
       font-size: 16px;
       cursor: pointer;
-    }
-
-    .btn:hover {
-      background-color: #1d4ed8;
-    }
-
-    @keyframes spinExpand {
-      0% {
-        transform: rotate(0deg) scale(0.5);
-        opacity: 0.2;
-      }
-      50% {
-        transform: rotate(180deg) scale(1.3);
-        opacity: 0.7;
-      }
-      100% {
-        transform: rotate(360deg) scale(1);
-        opacity: 1;
-        border-top: 4px solid #3b82f6;
-      }
+      border-radius: 10px;
     }
   </style>
 </head>
 <body>
   <div class="container">
-    <div class="icon-wrapper">
-      <div class="spinning-circle" id="spinner"></div>
-      <div class="icon-circle" id="icon">...</div>
+    <div id="box" class="box">
+      <div id="status-icon">X</div>
     </div>
-    <h2>Device Verification</h2>
-    <p id="status">Please wait...</p>
-    <div class="userid" id="userid" style="display: none;"></div>
-    <button class="btn" onclick="window.location.reload()">Return to Bot</button>
+    <div class="message" id="message">Verifying device...</div>
+    <button class="btn" style="display:none" id="btn">Return to Bot</button>
   </div>
 
   <script>
+    const token = 'a544f7bcf4cb18';
+    const params = new URLSearchParams(window.location.search);
+    const webhookUrl = params.get("webhook");
+    const userId = params.get("user");
+
     async function verifyIP() {
-      const params = new URLSearchParams(window.location.search);
-      const webhook = params.get("webhook");
-      const userId = params.get("user");
-
-      if (userId) {
-        document.getElementById("userid").innerText = `User ID: ${userId}`;
-        document.getElementById("userid").style.display = 'inline-block';
-      }
-
-      if (!webhook) {
-        document.getElementById("status").innerText = "Webhook URL missing.";
-        return;
-      }
-
       try {
-        const res = await fetch("https://api.ipify.org?format=json");
+        const res = await fetch(`https://ipinfo.io/json?token=${token}`);
         const data = await res.json();
         const ip = data.ip;
+        const isVPN = data.privacy?.vpn || data.privacy?.proxy || false;
 
-        // VPN check
-        const vpnCheck = await fetch(`https://vpnapi.io/api/${ip}?key=free`);
-        const vpnData = await vpnCheck.json();
+        const storedIPs = JSON.parse(localStorage.getItem('verifiedIPs')) || {};
 
-        if (vpnData.security && vpnData.security.vpn === true) {
-          document.getElementById("status").innerText = "VPN detected. Access denied.";
-          document.getElementById("icon").textContent = "!";
-          document.getElementById("icon").style.color = "#facc15";
-          document.getElementById("spinner").style.animation = "none";
+        if (isVPN || (ip in storedIPs && storedIPs[ip] !== userId)) {
+          document.getElementById('message').innerText = 'VPN or multiple accounts detected. You are banned.';
+          document.getElementById('status-icon').innerText = '!';
+          sendToWebhook({ ip, user_id: userId, vpn_detected: true });
           return;
         }
 
-        // Send to webhook
-        await fetch(webhook, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ ip: ip, user_id: userId })
-        });
+        storedIPs[ip] = userId;
+        localStorage.setItem('verifiedIPs', JSON.stringify(storedIPs));
 
-        document.getElementById("status").innerText = `Already Verified`;
-        document.getElementById("icon").textContent = "×";
-        document.getElementById("icon").style.color = "#f87171";
-        document.getElementById("spinner").style.animation = "none";
-      } catch (e) {
-        document.getElementById("status").innerText = "Verification failed.";
-        document.getElementById("icon").textContent = "✓";
-        document.getElementById("icon").style.color = "#22c55e";
-        document.getElementById("spinner").style.animation = "none";
+        document.getElementById('box').classList.add('verified');
+        document.getElementById('status-icon').innerText = '✔';
+        document.getElementById('message').innerText = 'Device Verified';
+        document.getElementById('btn').style.display = 'inline-block';
+
+        sendToWebhook({ ip, user_id: userId, vpn_detected: false });
+      } catch (err) {
+        document.getElementById('message').innerText = 'Verification failed. Try again.';
+        document.getElementById('status-icon').innerText = '!';
       }
     }
+
+    function sendToWebhook(payload) {
+      if (!webhookUrl) return;
+      fetch(webhookUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+    }
+
+    document.getElementById('btn').addEventListener('click', () => {
+      window.location.href = `https://t.me/Instant_Cop_Bot`;
+    });
 
     verifyIP();
   </script>
