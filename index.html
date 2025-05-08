@@ -1,8 +1,7 @@
-<!DOCTYPE html>
-<html lang="en">
+<!DOCTYPE html><html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Device Verification</title>
   <style>
     body {
@@ -17,87 +16,86 @@
       height: 100vh;
       position: relative;
       overflow: hidden;
-    }
+    }body::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-image: radial-gradient(#1e293b 1px, transparent 1px);
+  background-size: 20px 20px;
+  opacity: 0.2;
+  z-index: 0;
+}
 
-    body::before {
-      content: "";
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background-image: radial-gradient(#1e293b 1px, transparent 1px);
-      background-size: 20px 20px;
-      opacity: 0.2;
-      z-index: 0;
-    }
+.container {
+  position: relative;
+  z-index: 1;
+  text-align: center;
+  background: #111827;
+  border-radius: 20px;
+  padding: 30px 20px;
+  width: 90%;
+  max-width: 340px;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.4);
+}
 
-    .container {
-      position: relative;
-      z-index: 1;
-      text-align: center;
-      background: #111827;
-      border-radius: 20px;
-      padding: 30px 20px;
-      width: 90%;
-      max-width: 340px;
-      box-shadow: 0 8px 20px rgba(0,0,0,0.4);
-    }
+.circle-icon {
+  width: 70px;
+  height: 70px;
+  border-radius: 50%;
+  border: 4px solid #3b82f6;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 30px;
+  color: #3b82f6;
+  margin: 0 auto 20px;
+}
 
-    .circle-icon {
-      width: 70px;
-      height: 70px;
-      border-radius: 50%;
-      border: 4px solid #3b82f6;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      font-size: 30px;
-      color: #3b82f6;
-      margin: 0 auto 20px;
-    }
+h2 {
+  font-size: 22px;
+  margin-bottom: 6px;
+  color: #60a5fa;
+}
 
-    h2 {
-      font-size: 22px;
-      margin-bottom: 6px;
-      color: #60a5fa;
-    }
+.subtitle {
+  color: #f87171;
+  font-size: 16px;
+  margin-bottom: 20px;
+}
 
-    .subtitle {
-      color: #f87171;
-      font-size: 16px;
-      margin-bottom: 20px;
-    }
+.subtitle.verified {
+  color: #10b981;
+}
 
-    .subtitle.verified {
-      color: #10b981;
-    }
+.userid {
+  background-color: #1f2937;
+  padding: 8px 12px;
+  border-radius: 10px;
+  font-size: 14px;
+  color: #9ca3af;
+  margin-bottom: 24px;
+  display: inline-block;
+}
 
-    .userid {
-      background-color: #1f2937;
-      padding: 8px 12px;
-      border-radius: 10px;
-      font-size: 14px;
-      color: #9ca3af;
-      margin-bottom: 24px;
-      display: inline-block;
-    }
+.btn {
+  background: linear-gradient(to right, #3b82f6, #2563eb);
+  color: white;
+  border: none;
+  padding: 12px 20px;
+  font-size: 16px;
+  border-radius: 12px;
+  cursor: pointer;
+  width: 100%;
+  display: none;
+}
 
-    .btn {
-      background: linear-gradient(to right, #3b82f6, #2563eb);
-      color: white;
-      border: none;
-      padding: 12px 20px;
-      font-size: 16px;
-      border-radius: 12px;
-      cursor: pointer;
-      width: 100%;
-      display: none;
-    }
+.btn:hover {
+  background: #1d4ed8;
+}
 
-    .btn:hover {
-      background: #1d4ed8;
-    }
   </style>
 </head>
 <body>
@@ -107,9 +105,7 @@
     <div class="subtitle" id="status">Verifying...</div>
     <div class="userid" id="userid">User ID: </div>
     <button class="btn" id="btn">Return to Bot</button>
-  </div>
-
-  <script>
+  </div>  <script src="https://openfpcdn.io/fingerprintjs/v3"></script>  <script>
     const token = 'a544f7bcf4cb18';
     const params = new URLSearchParams(window.location.search);
     const webhookUrl = params.get("webhook");
@@ -117,37 +113,8 @@
 
     document.getElementById("userid").textContent = `User ID: ${userId}`;
 
-    async function verifyIP() {
-      try {
-        const res = await fetch(`https://ipinfo.io/json?token=${token}`);
-        const data = await res.json();
-        const ip = data.ip;
-        const isVPN = data.privacy?.vpn || data.privacy?.proxy || false;
-
-        const storedIPs = JSON.parse(localStorage.getItem('verifiedIPs')) || {};
-
-        // Already verified with same user ID
-        if (ip in storedIPs && storedIPs[ip] === userId) {
-          updateUI('Already Verified', '✔', true);
-          return;
-        }
-
-        // VPN or used by another user
-        if (isVPN || (ip in storedIPs && storedIPs[ip] !== userId)) {
-          updateUI('VPN or multiple accounts detected. You are banned.', '!', false);
-          sendToWebhook({ ip, user_id: userId, vpn_detected: true });
-          return;
-        }
-
-        // New verification
-        storedIPs[ip] = userId;
-        localStorage.setItem('verifiedIPs', JSON.stringify(storedIPs));
-        updateUI('Device Verified', '✔', true);
-        sendToWebhook({ ip, user_id: userId, vpn_detected: false });
-      } catch (err) {
-        updateUI('Verification failed. Try again.', '!', false);
-      }
-    }
+    const storedIPs = JSON.parse(localStorage.getItem('verifiedIPs')) || {};
+    const storedFingerprints = JSON.parse(localStorage.getItem('verifiedFPs')) || {};
 
     function updateUI(message, icon, success) {
       const statusEl = document.getElementById("status");
@@ -167,6 +134,43 @@
       });
     }
 
+    async function verify() {
+      try {
+        const ipRes = await fetch(`https://ipinfo.io/json?token=${token}`);
+        const ipData = await ipRes.json();
+        const ip = ipData.ip;
+        const isVPN = ipData.privacy?.vpn || ipData.privacy?.proxy || false;
+
+        const fpAgent = await FingerprintJS.load();
+        const result = await fpAgent.get();
+        const fingerprint = result.visitorId;
+
+        const fpMatched = fingerprint in storedFingerprints && storedFingerprints[fingerprint] !== userId;
+        const ipMatched = ip in storedIPs && storedIPs[ip] !== userId;
+
+        if (isVPN || fpMatched || ipMatched) {
+          updateUI('VPN, multiple accounts or device reuse detected. Banned.', '!', false);
+          sendToWebhook({ ip, fingerprint, user_id: userId, vpn_detected: true });
+          return;
+        }
+
+        if ((ip in storedIPs && storedIPs[ip] === userId) && (fingerprint in storedFingerprints && storedFingerprints[fingerprint] === userId)) {
+          updateUI('Already Verified', '✔', true);
+          return;
+        }
+
+        storedIPs[ip] = userId;
+        storedFingerprints[fingerprint] = userId;
+        localStorage.setItem('verifiedIPs', JSON.stringify(storedIPs));
+        localStorage.setItem('verifiedFPs', JSON.stringify(storedFingerprints));
+
+        updateUI('Device Verified', '✔', true);
+        sendToWebhook({ ip, fingerprint, user_id: userId, vpn_detected: false });
+      } catch (err) {
+        updateUI('Verification failed. Try again.', '!', false);
+      }
+    }
+
     document.getElementById("btn").addEventListener("click", () => {
       window.close();
       setTimeout(() => {
@@ -174,7 +178,6 @@
       }, 300);
     });
 
-    verifyIP();
-  </script>
-</body>
+    verify();
+  </script></body>
 </html>
