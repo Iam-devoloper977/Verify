@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Device Verification</title>
   <style>
     body {
@@ -109,7 +109,6 @@
     <button class="btn" id="btn">Return to Bot</button>
   </div>
 
-  <script src="https://cdn.jsdelivr.net/npm/@fingerprintjs/fingerprintjs@3/dist/fp.min.js"></script>
   <script>
     const token = 'a544f7bcf4cb18';
     const params = new URLSearchParams(window.location.search);
@@ -118,8 +117,37 @@
 
     document.getElementById("userid").textContent = `User ID: ${userId}`;
 
-    const storedIPs = JSON.parse(localStorage.getItem('verifiedIPs')) || {};
-    const storedFingerprints = JSON.parse(localStorage.getItem('verifiedFPs')) || {};
+    async function verifyIP() {
+      try {
+        const res = await fetch(`https://ipinfo.io/json?token=${token}`);
+        const data = await res.json();
+        const ip = data.ip;
+        const isVPN = data.privacy?.vpn || data.privacy?.proxy || false;
+
+        const storedIPs = JSON.parse(localStorage.getItem('verifiedIPs')) || {};
+
+        // Already verified with same user ID
+        if (ip in storedIPs && storedIPs[ip] === userId) {
+          updateUI('Already Verified', '✔', true);
+          return;
+        }
+
+        // VPN or used by another user
+        if (isVPN || (ip in storedIPs && storedIPs[ip] !== userId)) {
+          updateUI('VPN or multiple accounts detected. You are banned.', '!', false);
+          sendToWebhook({ ip, user_id: userId, vpn_detected: true });
+          return;
+        }
+
+        // New verification
+        storedIPs[ip] = userId;
+        localStorage.setItem('verifiedIPs', JSON.stringify(storedIPs));
+        updateUI('Device Verified', '✔', true);
+        sendToWebhook({ ip, user_id: userId, vpn_detected: false });
+      } catch (err) {
+        updateUI('Verification failed. Try again.', '!', false);
+      }
+    }
 
     function updateUI(message, icon, success) {
       const statusEl = document.getElementById("status");
@@ -139,45 +167,6 @@
       });
     }
 
-    async function verify() {
-      try {
-        const ipRes = await fetch(`https://ipinfo.io/json?token=${token}`);
-        const ipData = await ipRes.json();
-        const ip = ipData.ip;
-        const isVPN = ipData?.privacy?.vpn || ipData?.privacy?.proxy || ipData?.privacy?.relay || false;
-
-        const fpAgent = await FingerprintJS.load();
-        const result = await fpAgent.get();
-        const fingerprint = result.visitorId;
-
-        const fpMatched = fingerprint in storedFingerprints && storedFingerprints[fingerprint] !== userId;
-        const ipMatched = ip in storedIPs && storedIPs[ip] !== userId;
-
-        if (isVPN || fpMatched || ipMatched) {
-          updateUI('VPN, multiple accounts or device reuse detected. Banned.', '!', false);
-          sendToWebhook({ ip, fingerprint, user_id: userId, vpn_detected: true });
-          return;
-        }
-
-        if ((ip in storedIPs && storedIPs[ip] === userId) && 
-            (fingerprint in storedFingerprints && storedFingerprints[fingerprint] === userId)) {
-          updateUI('Already Verified', '✔', true);
-          return;
-        }
-
-        storedIPs[ip] = userId;
-        storedFingerprints[fingerprint] = userId;
-        localStorage.setItem('verifiedIPs', JSON.stringify(storedIPs));
-        localStorage.setItem('verifiedFPs', JSON.stringify(storedFingerprints));
-
-        updateUI('Device Verified', '✔', true);
-        sendToWebhook({ ip, fingerprint, user_id: userId, vpn_detected: false });
-      } catch (err) {
-        updateUI('Verification failed. Try again.', '!', false);
-        console.error("Verification Error:", err);
-      }
-    }
-
     document.getElementById("btn").addEventListener("click", () => {
       window.close();
       setTimeout(() => {
@@ -185,7 +174,7 @@
       }, 300);
     });
 
-    verify();
+    verifyIP();
   </script>
 </body>
 </html>
