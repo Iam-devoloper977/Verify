@@ -126,16 +126,23 @@
 
         const storedIPs = JSON.parse(localStorage.getItem('verifiedIPs')) || {};
 
+        // Already verified with same user ID
+        if (ip in storedIPs && storedIPs[ip] === userId) {
+          updateUI('Already Verified', '✔', true);
+          return;
+        }
+
+        // VPN or used by another user
         if (isVPN || (ip in storedIPs && storedIPs[ip] !== userId)) {
           updateUI('VPN or multiple accounts detected. You are banned.', '!', false);
           sendToWebhook({ ip, user_id: userId, vpn_detected: true });
           return;
         }
 
+        // New verification
         storedIPs[ip] = userId;
         localStorage.setItem('verifiedIPs', JSON.stringify(storedIPs));
-
-        updateUI('Already Verified', '×', true);
+        updateUI('Device Verified', '✔', true);
         sendToWebhook({ ip, user_id: userId, vpn_detected: false });
       } catch (err) {
         updateUI('Verification failed. Try again.', '!', false);
@@ -147,7 +154,7 @@
       const iconEl = document.getElementById("icon");
       iconEl.textContent = icon;
       statusEl.textContent = message;
-      if (success) statusEl.classList.add("verified");
+      statusEl.classList.toggle("verified", success);
       document.getElementById("btn").style.display = "inline-block";
     }
 
