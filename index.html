@@ -108,63 +108,87 @@
     <div class="userid" id="userid">User ID: </div>
     <button class="btn" id="btn">Return to Bot</button>
   </div>
-
+  
   <script>
-    const params = new URLSearchParams(window.location.search);
-    const webhookUrl = params.get("webhook");
-    const userId = params.get("user");
+  const params = new URLSearchParams(window.location.search);
+  const webhookUrl = params.get("webhook");
+  const userId = params.get("user");
+  const apiKey = 'YOUR_API_KEY';
 
-    document.getElementById("userid").textContent = `User ID: ${userId}`;
+  document.getElementById("userid").textContent = `User ID: ${userId}`;
 
-    const fpPromise = import('https://fpjscdn.net/v3/aNiwUNHSu4puMtWGAqc4')
-      .then(FingerprintJS => FingerprintJS.load({ region: "ap" }));
+  const fpPromise = import('https://openfpcdn.io/fingerprintjs/v4')
+    .then(FingerprintJS => FingerprintJS.load());
 
-    fpPromise
-      .then(fp => fp.get())
-      .then(result => {
-        const visitorId = result.visitorId;
-        const storedIDs = JSON.parse(localStorage.getItem('verifiedIDs')) || {};
+  async function getIP() {
+    const res = await fetch("https://api.ipify.org?format=json");
+    const data = await res.json();
+    return data.ip;
+  }
 
-        if (visitorId in storedIDs && storedIDs[visitorId] === userId) {
-          updateUI('Already Verified', '✔', true);
-        } else if (visitorId in storedIDs && storedIDs[visitorId] !== userId) {
-          updateUI('Multiple accounts detected. You are banned.', '!', false);
-          sendToWebhook({ visitor_id: visitorId, user_id: userId, multiple_accounts: true });
-        } else {
-          storedIDs[visitorId] = userId;
-          localStorage.setItem('verifiedIDs', JSON.stringify(storedIDs));
-          updateUI('Device Verified', '✔', true);
-          sendToWebhook({ visitor_id: visitorId, user_id: userId, multiple_accounts: false });
-        }
-      })
-      .catch(() => {
-        updateUI('Verification failed. Try again.', '!', false);
-      });
+  async function verify() {
+    try {
+      const [fpResult, ip] = await Promise.all([
+        fpPromise.then(fp => fp.get()),
+        getIP()
+      ]);
+      const visitorId = fpResult.visitorId;
 
-    function updateUI(message, icon, success) {
-      const statusEl = document.getElementById("status");
-      const iconEl = document.getElementById("icon");
-      iconEl.textContent = icon;
-      statusEl.textContent = message;
-      statusEl.classList.toggle("verified", success);
-      document.getElementById("btn").style.display = "inline-block";
+      const vpnRes = await fetch(`https://vpnapi.io/api/${ip}?key=${apiKey}`);
+      const vpnData = await vpnRes.json();
+
+      const isVPN = vpnData.security?.vpn || vpnData.security?.proxy || vpnData.security?.tor;
+
+      const storedIDs = JSON.parse(localStorage.getItem('verifiedIDs')) || {};
+
+      if (isVPN) {
+        updateUI('VPN/proxy detected. You are banned.', '!', false);
+        sendToWebhook({ visitor_id: visitorId, user_id: userId, ip: ip, vpn_detected: true });
+        return;
+      }
+
+      if (visitorId in storedIDs && storedIDs[visitorId] === userId) {
+        updateUI('Already Verified', '✔', true);
+      } else if (visitorId in storedIDs && storedIDs[visitorId] !== userId) {
+        updateUI('Multiple accounts detected. You are banned.', '!', false);
+        sendToWebhook({ visitor_id: visitorId, user_id: userId, ip: ip, multiple_accounts: true });
+      } else {
+        storedIDs[visitorId] = userId;
+        localStorage.setItem('verifiedIDs', JSON.stringify(storedIDs));
+        updateUI('Device Verified', '✔', true);
+        sendToWebhook({ visitor_id: visitorId, user_id: userId, ip: ip, vpn_detected: false });
+      }
+    } catch (err) {
+      updateUI('Verification failed. Try again.', '!', false);
     }
+  }
 
-    function sendToWebhook(payload) {
-      if (!webhookUrl) return;
-      fetch(webhookUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
-    }
+  function updateUI(message, icon, success) {
+    const statusEl = document.getElementById("status");
+    const iconEl = document.getElementById("icon");
+    iconEl.textContent = icon;
+    statusEl.textContent = message;
+    statusEl.classList.toggle("verified", success);
+    document.getElementById("btn").style.display = "inline-block";
+  }
 
-    document.getElementById("btn").addEventListener("click", () => {
-      window.close();
-      setTimeout(() => {
-        window.location.href = "https://t.me/Instant_Cop_Bot";
-      }, 300);
+  function sendToWebhook(payload) {
+    if (!webhookUrl) return;
+    fetch(webhookUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
     });
+  }
+
+  document.getElementById("btn").addEventListener("click", () => {
+    window.close();
+    setTimeout(() => {
+      window.location.href = "https://t.me/Instant_Cop_Bot";
+    }, 300);
+  });
+
+  verify();
   </script>
 </body>
 </html>
