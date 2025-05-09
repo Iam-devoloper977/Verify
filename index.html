@@ -110,58 +110,36 @@
   </div>
 
   <script>
-    const token = 'a544f7bcf4cb18';
     const params = new URLSearchParams(window.location.search);
     const webhookUrl = params.get("webhook");
     const userId = params.get("user");
-    
-  // Initialize the agent on page load.
-    const fpPromise = import('https://fpjscdn.net/v3/aNiwUNHSu4puMtWGAqc4')
-    .then(FingerprintJS => FingerprintJS.load({
-      region: "ap"
-     }))
-
-  // Get the visitorId when you need it.
-    fpPromise
-    .then(fp => fp.get())
-    .then(result => {
-      const visitorId = result.visitorId
-      console.log(visitorId)
-     })
 
     document.getElementById("userid").textContent = `User ID: ${userId}`;
 
-    async function verifyIP() {
-      try {
-        const res = await fetch(`https://ipinfo.io/json?token=${token}`);
-        const data = await res.json();
-        const ip = data.ip;
-        const isVPN = data.privacy?.vpn || data.privacy?.proxy || false;
+    const fpPromise = import('https://fpjscdn.net/v3/aNiwUNHSu4puMtWGAqc4')
+      .then(FingerprintJS => FingerprintJS.load({ region: "ap" }));
 
-        const storedIPs = JSON.parse(localStorage.getItem('verifiedIPs')) || {};
+    fpPromise
+      .then(fp => fp.get())
+      .then(result => {
+        const visitorId = result.visitorId;
+        const storedIDs = JSON.parse(localStorage.getItem('verifiedIDs')) || {};
 
-        // Already verified with same user ID
-        if (ip in storedIPs && storedIPs[ip] === userId) {
+        if (visitorId in storedIDs && storedIDs[visitorId] === userId) {
           updateUI('Already Verified', '✔', true);
-          return;
+        } else if (visitorId in storedIDs && storedIDs[visitorId] !== userId) {
+          updateUI('Multiple accounts detected. You are banned.', '!', false);
+          sendToWebhook({ visitor_id: visitorId, user_id: userId, multiple_accounts: true });
+        } else {
+          storedIDs[visitorId] = userId;
+          localStorage.setItem('verifiedIDs', JSON.stringify(storedIDs));
+          updateUI('Device Verified', '✔', true);
+          sendToWebhook({ visitor_id: visitorId, user_id: userId, multiple_accounts: false });
         }
-
-        // VPN or used by another user
-        if (isVPN || (ip in storedIPs && storedIPs[ip] !== userId)) {
-          updateUI('VPN or multiple accounts detected. You are banned.', '!', false);
-          sendToWebhook({ ip, user_id: userId, vpn_detected: true });
-          return;
-        }
-
-        // New verification
-        storedIPs[ip] = userId;
-        localStorage.setItem('verifiedIPs', JSON.stringify(storedIPs));
-        updateUI('Device Verified', '✔', true);
-        sendToWebhook({ ip, user_id: userId, vpn_detected: false });
-      } catch (err) {
+      })
+      .catch(() => {
         updateUI('Verification failed. Try again.', '!', false);
-      }
-    }
+      });
 
     function updateUI(message, icon, success) {
       const statusEl = document.getElementById("status");
@@ -187,8 +165,6 @@
         window.location.href = "https://t.me/Instant_Cop_Bot";
       }, 300);
     });
-
-    verifyIP();
   </script>
 </body>
 </html>
